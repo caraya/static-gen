@@ -1,0 +1,1 @@
+npm i -D gulp@3.9.1 browser-sync connect-history-api-fallback node-sass gulp-postcss autoprefixer gulp-imagemin imagemin-mozjpeg imagemin-webp gulp-remarkable gulp-newer gulp-wrap gulp-babel @babel/core @babel/preset-env gulp-sourcemaps gulp-responsive-images
