@@ -5,6 +5,7 @@ const gulp = require('gulp');
 //  packageJson = require('./package.json'),
 // Load plugins
 // const $ = require('gulp-load-plugins')({lazy: true});
+const runSequence = require('run-sequence');
 
 // Markdown and templates
 const markdown = require('gulp-remarkable');
@@ -52,10 +53,10 @@ gulp.task('markdown', () => {
 
 gulp.task('build-template', ['markdown'], () => {
   gulp.src('./src/converted-md/*.html')
-      .pipe($.wrap({
+      .pipe(wrap({
         src: './src/templates/template.html',
       }))
-      .pipe(gulp.dest('./src/'));
+      .pipe(gulp.dest('./docs/'));
 });
 
 
@@ -74,11 +75,7 @@ gulp.task('sass:dev', () => {
     sourcemap: true,
     style: 'expanded',
   })
-      .pipe(gulp.dest('src/css'))
-      .pipe($.size({
-        pretty: true,
-        title: 'SASS',
-      }));
+      .pipe(gulp.dest('docs/css'))
 });
 
 /**
@@ -100,14 +97,10 @@ gulp.task('processCSS', () => {
   ];
   return gulp
       .src('src/css/**/*.css')
-      .pipe($.sourcemaps.init())
+      .pipe(sourcemaps.init())
       .pipe(postcss(PROCESSORS))
-      .pipe($.sourcemaps.write('.'))
-      .pipe(gulp.dest('src/css'))
-      .pipe($.size({
-        pretty: true,
-        title: 'processCSS',
-      }));
+      .pipe(sourcemaps.write('.'))
+      .pipe(gulp.dest('docs/css'))
 });
 
 
@@ -167,122 +160,8 @@ gulp.task('imagemin', () => {
         ],
         use: [mozjpeg()],
       }))
-      .pipe(gulp.dest('src/images'));
+      .pipe(gulp.dest('docs/images'));
 });
-
-/**
- * @name processImages
- * @description processImages creates a set of responsive images for each of the PNG and JPG images in the images
- * directory
- *
- * @see {@link http://sharp.dimens.io/en/stable/install/|Sharp}
- * @see {@link https://github.com/jcupitt/libvips|LibVIPS dependency for Mac}
- * @see {@link https://www.npmjs.com/package/gulp-responsive|gulp-responsive}
- * @see {@link imagemin}
- *
- */
-gulp.task('processImages', () => {
-  return gulp.src(['src/images/**/*.{jpg,png}', '!src/images/touch/*.png'])
-      .pipe($.responsive({
-        '*': [{
-          // image-small.jpg is 200 pixels wide
-          width: 200,
-          rename: {
-            suffix: '-small',
-            extname: '.jpg',
-          },
-        }, {
-          // image-small@2x.jpg is 400 pixels wide
-          width: 200 * 2,
-          rename: {
-            suffix: '-small@2x',
-            extname: '.jpg',
-          },
-        }, {
-          // image-large.jpg is 480 pixels wide
-          width: 480,
-          rename: {
-            suffix: '-large',
-            extname: '.jpg',
-          },
-        }, {
-          // image-large@2x.jpg is 960 pixels wide
-          width: 480 * 2,
-          rename: {
-            suffix: '-large@2x',
-            extname: '.jpg',
-          },
-        }, {
-          // image-extralarge.jpg is 1280 pixels wide
-          width: 1280,
-          rename: {
-            suffix: '-extralarge',
-            extname: '.jpg',
-          },
-        }, {
-          // image-extralarge@2x.jpg is 2560 pixels wide
-          width: 1280 * 2,
-          rename: {
-            suffix: '-extralarge@2x',
-            extname: '.jpg',
-          },
-        }, {
-          // image-small.webp is 200 pixels wide
-          width: 200,
-          rename: {
-            suffix: '-small',
-            extname: '.webp',
-          },
-        }, {
-          // image-small@2x.webp is 400 pixels wide
-          width: 200 * 2,
-          rename: {
-            suffix: '-small@2x',
-            extname: '.webp',
-          },
-        }, {
-          // image-large.webp is 480 pixels wide
-          width: 480,
-          rename: {
-            suffix: '-large',
-            extname: '.webp',
-          },
-        }, {
-          // image-large@2x.webp is 960 pixels wide
-          width: 480 * 2,
-          rename: {
-            suffix: '-large@2x',
-            extname: '.webp',
-          },
-        }, {
-          // image-extralarge.webp is 1280 pixels wide
-          width: 1280,
-          rename: {
-            suffix: '-extralarge',
-            extname: '.webp',
-          },
-        }, {
-          // image-extralarge@2x.webp is 2560 pixels wide
-          width: 1280 * 2,
-          rename: {
-            suffix: '-extralarge@2x',
-            extname: '.webp',
-          },
-        }, {
-          // Global configuration for all images
-          // The output quality for JPEG, WebP and TIFF output formats
-          quality: 80,
-          // Use progressive (interlace) scan for JPEG and PNG output
-          progressive: true,
-          // Skip enalrgement warnings
-          skipOnEnlargement: false,
-          // Strip all metadata
-          withMetadata: true,
-        }],
-      })
-          .pipe(gulp.dest('dist/images')));
-});
-
 
 /**
  * @name clean
@@ -290,12 +169,10 @@ gulp.task('processImages', () => {
  */
 gulp.task('clean', () => {
   return del.sync([
-    'dist/',
+    'ddocs/',
     '.tmp',
     'src/html-content',
-    'src/*.html',
-    'src/pm-content',
-    'src/pdf',
+    'src/**/*.html',
   ]);
 });
 
@@ -328,5 +205,5 @@ gulp.task('serve', () => {
  * @description uses clean, processCSS, build-template, imagemin and copyAssets to build the HTML content from Markdown source
  */
 gulp.task('default', () => {
-  runSequence('processCSS', 'build-template', 'imagemin', 'copyAssets');
+  runSequence('processCSS', 'build-template', 'imagemin');
 });

@@ -35,11 +35,11 @@
     "gulp-newer": "^1.4.0",
     "gulp-postcss": "^8.0.0",
     "gulp-remarkable": "^2.1.0",
-    "gulp-responsive-images": "0.0.4",
     "gulp-sourcemaps": "^2.6.5",
     "gulp-wrap": "^0.14.0",
     "imagemin-mozjpeg": "^8.0.0",
     "imagemin-webp": "^5.0.0",
-    "node-sass": "^4.11.0"
+    "node-sass": "^4.11.0",
+    "run-sequence": "^2.2.1"
   }
 }
