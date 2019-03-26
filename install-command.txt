@@ -1,1 +1,1 @@
-npm i -D gulp@3.9.1 browser-sync connect-history-api-fallback node-sass gulp-postcss autoprefixer gulp-imagemin imagemin-mozjpeg imagemin-webp gulp-remarkable gulp-newer gulp-wrap gulp-babel @babel/core @babel/preset-env gulp-sourcemaps
+npm i -D gulp@3.9 browser-sync connect-history-api-fallback node-sass gulp-postcss autoprefixer gulp-imagemin@4.1 imagemin-mozjpeg imagemin-webp gulp-babel @babel/core @babel/preset-env gulp-sourcemaps gulp-remarkable@1 gulp-wrap eslint eslint-config-google acorn@6 del run-sequence gulp-ext-replace

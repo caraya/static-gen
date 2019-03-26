@@ -3,14 +3,12 @@
 // Require Gulp first
 const gulp = require('gulp');
 //  packageJson = require('./package.json'),
-// Load plugins
-// const $ = require('gulp-load-plugins')({lazy: true});
 const runSequence = require('run-sequence');
-
+const del = require('del');
+const extReplace = require('gulp-ext-replace');
 // Markdown and templates
 const markdown = require('gulp-remarkable');
 const wrap = require('gulp-wrap');
-const newer = require('gulp-newer');
 
 // CSS stuff
 const sass = require('node-sass');
@@ -36,13 +34,17 @@ const historyApiFallback = require('connect-history-api-fallback');
  * @name markdown
  * @description converts markdown to HTML
  */
+/**
+ * @name markdown
+ * @description converts markdown to HTML
+ */
 gulp.task('markdown', () => {
   return gulp.src('src/pages/*.md')
-      .pipe(newer('src/converted-md/'))
       .pipe(markdown({
         preset: 'commonmark',
-        typographer: true,
+        html: true,
         remarkableOptions: {
+          html: true,
           typographer: true,
           linkify: true,
           breaks: false,
@@ -52,17 +54,25 @@ gulp.task('markdown', () => {
 });
 
 gulp.task('build-template', ['markdown'], () => {
-  gulp.src('./src/converted-md/*.html')
+  return gulp.src('./src/converted-md/*.{md}')
       .pipe(wrap({
         src: './src/templates/template.html',
       }))
-      .pipe(gulp.dest('./docs/'));
+      .pipe(extReplace('.html'))
+      .pipe(gulp.dest('docs/'));
 });
 
+gulp.task('build-html-template', () => {
+  return gulp.src('./src/pages/*.html')
+      .pipe(wrap({
+        src: './src/templates/template.html',
+      }))
+      .pipe(gulp.dest('docs/'));
+});
 
 // SCSS conversion and CSS processing
 /**
- * @name sass:dev
+ * @name sass
  * @description SASS conversion task to produce development css with expanded syntax.
  *
  * We run this task agains Ruby SASS, not lib SASS. As such it requires the SASS Gem to be installed
@@ -70,39 +80,39 @@ gulp.task('build-template', ['markdown'], () => {
  * @see {@link http://sass-lang.com|SASS}
  * @see {@link http://sass-compatibility.github.io/|SASS Feature Compatibility}
  */
-gulp.task('sass:dev', () => {
-  return sass('src/sass/**/*.scss', {
-    sourcemap: true,
-    style: 'expanded',
-  })
-      .pipe(gulp.dest('docs/css'))
+gulp.task('sass', function() {
+  return gulp.src('src/sass/**/*.scss')
+      .pipe(sass({
+        sourcemap: true,
+        style, expanded,
+      })
+          .on('error', sass.logError))
+      .pipe(gulp.dest('./css'));
 });
 
 /**
  * @name processCSS
  *
- * @description Run autoprefixer and cleanCSS on the CSS files under src/css
+ * @description Run autoprefixer on the CSS files under src/css
  *
  * Moved from gulp-autoprefixer to postcss. It may open other options in the future
  * like cssnano to compress the files
  *
  * @see {@link https://github.com/postcss/autoprefixer|autoprefixer}
  */
-gulp.task('processCSS', () => {
+gulp.task('processCSS', function() {
   // What processors/plugins to use with PostCSS
   const PROCESSORS = [
     autoprefixer({
       browsers: ['last 3 versions'],
     }),
   ];
-  return gulp
-      .src('src/css/**/*.css')
+  return gulp.src('src/css/**/*.css')
       .pipe(sourcemaps.init())
       .pipe(postcss(PROCESSORS))
       .pipe(sourcemaps.write('.'))
-      .pipe(gulp.dest('docs/css'))
+      .pipe(gulp.dest('docs/css'));
 });
-
 
 /**
  * @name babel
@@ -114,7 +124,7 @@ gulp.task('processCSS', () => {
  * @see {@link http://babeljs.io/docs/learn-es2015/|Learn ES2015}
  * @see {@link http://www.ecma-international.org/ecma-262/6.0/|ECMAScript 2015 specification}
  */
-gulp.task('babel', () => {
+gulp.task('babel', function() {
   return gulp.src('src/es6/**/*.js')
       .pipe($.sourcemaps.init())
       .pipe($.babel({
@@ -125,41 +135,32 @@ gulp.task('babel', () => {
 });
 
 /**
- * @name eslint
- * @description Runs eslint on all javascript files
- */
-gulp.task('eslint', () => {
-  return gulp.src([
-    'scr/scripts/**/*.js',
-  ])
-      .pipe(eslint())
-      .pipe(eslint.format())
-      .pipe(eslint.failAfterError());
-});
-
-
-/**
  * @name imagemin
  * @description Reduces image file sizes. Doubly important if we'll choose to play with responsive images.
  *
- * Imagemin will compress jpg (using mozilla's mozjpeg), SVG (using SVGO) GIF and PNG images but WILL NOT create multiple versions for use with responsive images
+ * Imagemin will compress jpg (using mozilla's mozjpeg), SVG (using SVGO) GIF, WebP and PNG images but WILL NOT create multiple versions for use with responsive images
  *
- * @see {@link https://github.com/postcss/autoprefixer|Autoprefixer}
  * @see {@link processImages}
  */
-gulp.task('imagemin', () => {
-  return gulp.src('src/images/**')
-      .pipe(imagemin({
-        progressive: true,
-        svgoPlugins: [{
-          removeViewBox: false,
-        },
-        {
-          cleanupIDs: false,
-        },
-        ],
-        use: [mozjpeg()],
-      }))
+gulp.task('imagemin', function() {
+  return gulp.src('src/images/**/*')
+      .pipe(imagemin([
+        imagemin.gifsicle({
+          interlaced: true,
+        }),
+        imagemin.optipng({
+          optimizationLevel: 5,
+        }),
+        imagemin.svgo({
+          plugins: [{removeViewBox: true},
+            {cleanupIDs: false},
+          ],
+        }),
+        webp({
+          quality: 80,
+        }),
+        mozjpeg(),
+      ]))
       .pipe(gulp.dest('docs/images'));
 });
 
@@ -167,20 +168,17 @@ gulp.task('imagemin', () => {
  * @name clean
  * @description deletes specified files
  */
-gulp.task('clean', () => {
+gulp.task('clean', function() {
   return del.sync([
-    'ddocs/',
-    '.tmp',
-    'src/html-content',
-    'src/**/*.html',
+    'docs/',
+    'src/converted-md/*.{html, md}',
   ]);
 });
 
-gulp.task('serve', () => {
+gulp.task('serve', function() {
   browserSync({
     port: 2509,
     notify: false,
-    logPrefix: 'ATHENA',
     snippetOptions: {
       rule: {
         match: '<span id="browser-sync-binding"></span>',
@@ -189,10 +187,6 @@ gulp.task('serve', () => {
         },
       },
     },
-    // Run as an https by uncommenting 'https: true'
-    // Note: this uses an unsigned certificate which on first access
-    //       will present a certificate warning in the browser.
-    // https: true,
     server: {
       baseDir: ['.tmp', 'docs'],
       middleware: [historyApiFallback()],
@@ -202,8 +196,8 @@ gulp.task('serve', () => {
 
 /**
  * @name default
- * @description uses clean, processCSS, build-template, imagemin and copyAssets to build the HTML content from Markdown source
+ * @description uses clean, processCSS, build-template, imagemin to build the HTML content from Markdown source
  */
-gulp.task('default', () => {
-  runSequence('processCSS', 'build-template', 'imagemin');
+gulp.task('default', function() {
+  runSequence('clean', 'processCSS', 'build-template', 'build-html-template', 'imagemin');
 });
